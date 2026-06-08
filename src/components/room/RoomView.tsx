@@ -12,7 +12,7 @@ export const RoomView: FC<{}> = props =>
 
     useEffect(() =>
     {
-        const canvas = GetNitroInstance().application.renderer.view;
+        const canvas = GetNitroInstance().application.renderer.canvas;
 
         if(!canvas) return;
 

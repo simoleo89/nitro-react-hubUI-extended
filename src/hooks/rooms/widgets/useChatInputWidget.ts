@@ -1,4 +1,4 @@
-import { AvatarExpressionEnum, GetTicker, HabboClubLevelEnum, RoomControllerLevel, RoomEngineObjectEvent, RoomObjectCategory, RoomRotatingEffect, RoomSessionChatEvent, RoomSettingsComposer, RoomShakingEffect, RoomZoomEvent, TextureUtils } from '@nitrots/nitro-renderer';
+import { AvatarExpressionEnum, GetEventDispatcher, GetTicker, HabboClubLevelEnum, RoomControllerLevel, RoomEngineObjectEvent, RoomObjectCategory, RoomRotatingEffect, RoomSessionChatEvent, RoomSettingsComposer, RoomShakingEffect, RoomZoomEvent, TextureUtils } from '@nitrots/nitro-renderer';
 import { useEffect, useState } from 'react';
 import { ChatMessageTypeEnum, CreateLinkEvent, GetClubMemberLevel, GetConfiguration, GetRoomEngine, GetSessionDataManager, LocalizeText, SendMessageComposer } from '../../../api';
 import { useRoomEngineEvent, useRoomSessionManagerEvent } from '../../events';
@@ -104,11 +104,11 @@ const useChatInputWidgetState = () =>
                     return null;
                 case ':iddqd':
                 case ':flip':
-                    GetRoomEngine().events.dispatchEvent(new RoomZoomEvent(roomSession.roomId, -1, true));
+                    GetEventDispatcher().dispatchEvent(new RoomZoomEvent(roomSession.roomId, -1, true));
 
                     return null;
                 case ':zoom':
-                    GetRoomEngine().events.dispatchEvent(new RoomZoomEvent(roomSession.roomId, parseFloat(secondPart), false));
+                    GetEventDispatcher().dispatchEvent(new RoomZoomEvent(roomSession.roomId, parseFloat(secondPart), false));
 
                     return null;
                 case ':screenshot':
