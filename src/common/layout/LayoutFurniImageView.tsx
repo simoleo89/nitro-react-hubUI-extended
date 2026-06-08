@@ -1,5 +1,5 @@
 import { IGetImageListener, ImageResult, TextureUtils, Vector3d } from '@nitrots/nitro-renderer';
-import { CSSProperties, FC, useEffect, useMemo, useState } from 'react';
+import { CSSProperties, FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BaseProps } from '..';
 import { GetRoomEngine, ProductTypeEnum } from '../../api';
 import { Base } from '../Base';
@@ -13,10 +13,34 @@ interface LayoutFurniImageViewProps extends BaseProps<HTMLDivElement>
     scale?: number;
 }
 
+// PixiJS 8 (Nitro_Render_V3 2.1.0): TextureUtils.generateImage is async and
+// ImageResult/imageReady now expose the texture via `.data` (the old getImage()
+// + image.onload path silently produced nothing). Mirrors Nitro-V3.
 export const LayoutFurniImageView: FC<LayoutFurniImageViewProps> = props =>
 {
     const { productType = 's', productClassId = -1, direction = 2, extraData = '', scale = 1, style = {}, ...rest } = props;
     const [ imageElement, setImageElement ] = useState<HTMLImageElement>(null);
+    const isMounted = useRef(true);
+    const requestIdRef = useRef(0);
+
+    useEffect(() =>
+    {
+        isMounted.current = true;
+
+        return () =>
+        {
+            isMounted.current = false;
+        };
+    }, []);
+
+    const updateImage = useCallback(async (texture: any, requestId: number) =>
+    {
+        if(!texture) return;
+
+        const image = await TextureUtils.generateImage(texture);
+
+        if(image && isMounted.current && (requestIdRef.current === requestId)) setImageElement(image);
+    }, []);
 
     const getStyle = useMemo(() =>
     {
@@ -43,18 +67,14 @@ export const LayoutFurniImageView: FC<LayoutFurniImageViewProps> = props =>
 
     useEffect(() =>
     {
+        const requestId = ++requestIdRef.current;
+
+        setImageElement(null);
+
         let imageResult: ImageResult = null;
 
         const listener: IGetImageListener = {
-            imageReady: (id, texture, image) =>
-            {
-                if(!image && texture)
-                {
-                    image = TextureUtils.generateImage(texture);
-                }
-
-                image.onload = () => setImageElement(image);
-            },
+            imageReady: (result: any) => updateImage(result?.data, requestId),
             imageFailed: null
         };
 
@@ -68,15 +88,8 @@ export const LayoutFurniImageView: FC<LayoutFurniImageViewProps> = props =>
                 break;
         }
 
-        if(imageResult)
-        {
-            const image = imageResult.getImage();
-
-            image.onload = () => setImageElement(image);
-        }
-    }, [ productType, productClassId, direction, extraData ]);
-
-    if(!imageElement) return null;
+        if((imageResult as any)?.data) updateImage((imageResult as any).data, requestId);
+    }, [ productType, productClassId, direction, extraData, updateImage ]);
 
     return <Base classNames={ [ 'furni-image' ] } style={ getStyle } { ...rest } />;
-}
+};

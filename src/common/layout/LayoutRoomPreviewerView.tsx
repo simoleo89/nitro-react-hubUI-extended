@@ -1,5 +1,5 @@
-import { ColorConverter, GetTicker, IRoomRenderingCanvas, RoomPreviewer, TextureUtils } from '@nitrots/nitro-renderer';
-import { FC, MouseEvent, ReactNode, useEffect, useRef, useState } from 'react';
+import { GetRenderer, GetTicker, NitroLogger, NitroTicker, RoomPreviewer, TextureUtils } from '@nitrots/nitro-renderer';
+import { FC, MouseEvent, ReactNode, useEffect, useRef } from 'react';
 
 export interface LayoutRoomPreviewerViewProps
 {
@@ -9,11 +9,17 @@ export interface LayoutRoomPreviewerViewProps
     children?: ReactNode;
 }
 
+// PixiJS 8 (Nitro_Render_V3 2.1.0): the old `TextureUtils.generateImageUrl(master)`
+// no longer paints the previewer. The display container must be rendered into a
+// render texture every frame, then extracted to a canvas/data-URL. Logic mirrors
+// Nitro-V3's LayoutRoomPreviewerView; markup/props (fullHeight/height/children)
+// kept as hubUI had them.
 export const LayoutRoomPreviewerView: FC<LayoutRoomPreviewerViewProps> = props =>
 {
     const { roomPreviewer = null, fullHeight = false, height = 0, children = null } = props;
-    const [ renderingCanvas, setRenderingCanvas ] = useState<IRoomRenderingCanvas>(null);
-    const elementRef = useRef<HTMLDivElement>();
+    const elementRef = useRef<HTMLDivElement>(null);
+    const renderFailuresRef = useRef(0);
+    const MAX_RENDER_FAILURES = 6;
 
     const onClick = (event: MouseEvent<HTMLDivElement>) =>
     {
@@ -21,50 +27,89 @@ export const LayoutRoomPreviewerView: FC<LayoutRoomPreviewerViewProps> = props =
 
         if(event.shiftKey) roomPreviewer.changeRoomObjectDirection();
         else roomPreviewer.changeRoomObjectState();
-    }
+    };
 
     useEffect(() =>
     {
-        if(!roomPreviewer) return;
+        if(!roomPreviewer || !elementRef.current) return;
 
-        const update = (time: number) =>
+        renderFailuresRef.current = 0;
+
+        const measure = () =>
         {
-            if(!roomPreviewer || !renderingCanvas || !elementRef.current) return;
-        
-            roomPreviewer.updatePreviewRoomView();
+            const element = elementRef.current;
 
-            if(!renderingCanvas.canvasUpdated) return;
+            if(!element) return { width: 1, targetHeight: 1 };
 
-            elementRef.current.style.backgroundImage = `url(${ TextureUtils.generateImageUrl(renderingCanvas.master) })`;
-        }
+            const width = element.clientWidth || element.parentElement?.clientWidth || 0;
+            const targetHeight = fullHeight ? (element.clientHeight || element.parentElement?.clientHeight || height) : height;
 
-        if(!renderingCanvas)
+            return { width: Math.max(1, width), targetHeight: Math.max(1, targetHeight) };
+        };
+
+        const { width, targetHeight } = measure();
+        const texture = TextureUtils.createRenderTexture(width, targetHeight);
+
+        const noteFailure = (label: string, error: unknown) =>
         {
-            if(elementRef.current && roomPreviewer)
+            renderFailuresRef.current += 1;
+
+            if(renderFailuresRef.current >= MAX_RENDER_FAILURES) NitroLogger.error(`LayoutRoomPreviewerView ${ label } failed ${ renderFailuresRef.current } times; disabling further renders for this preview`, error);
+        };
+
+        const paintToDOM = () =>
+        {
+            if(renderFailuresRef.current >= MAX_RENDER_FAILURES) return;
+            if(!roomPreviewer || !elementRef.current) return;
+
+            const renderingCanvas = roomPreviewer.getRenderingCanvas();
+
+            if(!renderingCanvas) return;
+
+            try
             {
-                const computed = document.defaultView.getComputedStyle(elementRef.current, null);
+                GetRenderer().render({
+                    target: texture,
+                    container: renderingCanvas.master,
+                    clear: true
+                });
 
-                let backgroundColor = computed.backgroundColor;
+                const canvas = GetRenderer().texture.generateCanvas(texture);
+                const base64 = canvas.toDataURL('image/png');
 
-                backgroundColor = ColorConverter.rgbStringToHex(backgroundColor);
-                backgroundColor = backgroundColor.replace('#', '0x');
+                canvas.width = 0;
+                canvas.height = 0;
 
-                roomPreviewer.backgroundColor = parseInt(backgroundColor, 16);
-
-                const width = elementRef.current.clientWidth;
-                const targetHeight = (fullHeight ? elementRef.current.clientHeight : height);
-                
-                roomPreviewer.getRoomCanvas(width, targetHeight);
-
-                const canvas = roomPreviewer.getRenderingCanvas();
-
-                setRenderingCanvas(canvas);
-
-                canvas.canvasUpdated = true;
-
-                update(-1);
+                elementRef.current.style.backgroundImage = `url(${ base64 })`;
+                renderFailuresRef.current = 0;
             }
-        }
+            catch(error)
+            {
+                noteFailure('paint', error);
+            }
+        };
+
+        const update = (ticker: NitroTicker) =>
+        {
+            if(renderFailuresRef.current >= MAX_RENDER_FAILURES) return;
+            if(!roomPreviewer || !elementRef.current) return;
+
+            try
+            {
+                roomPreviewer.updatePreviewRoomView();
+            }
+            catch(error)
+            {
+                noteFailure('update', error);
+                return;
+            }
+
+            const renderingCanvas = roomPreviewer.getRenderingCanvas();
+
+            if(renderingCanvas && renderingCanvas.canvasUpdated) paintToDOM();
+        };
+
+        roomPreviewer.getRoomCanvas(width, targetHeight);
 
         GetTicker().add(update);
 
@@ -72,24 +117,29 @@ export const LayoutRoomPreviewerView: FC<LayoutRoomPreviewerViewProps> = props =
         {
             if(!roomPreviewer || !elementRef.current) return;
 
-            const width = elementRef.current.clientWidth;
-            const targetHeight = (fullHeight ? elementRef.current.clientHeight : height);
+            const next = measure();
 
-            roomPreviewer.modifyRoomCanvas(width, targetHeight);
+            roomPreviewer.modifyRoomCanvas(next.width, next.targetHeight);
 
-            update(-1);
+            paintToDOM();
         });
-        
+
         resizeObserver.observe(elementRef.current);
 
         return () =>
         {
+            GetTicker().remove(update);
+
             resizeObserver.disconnect();
 
-            GetTicker().remove(update);
-        }
-
-    }, [ renderingCanvas, roomPreviewer, elementRef, height, fullHeight ]);
+            try
+            {
+                texture.destroy(true);
+            }
+            catch
+            { }
+        };
+    }, [ roomPreviewer, elementRef, height, fullHeight ]);
 
     return (
         <div className="room-preview-container">
@@ -97,4 +147,4 @@ export const LayoutRoomPreviewerView: FC<LayoutRoomPreviewerViewProps> = props =
             { children }
         </div>
     );
-}
+};
