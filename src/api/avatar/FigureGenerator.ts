@@ -55,10 +55,11 @@ function getRandomColors(palette: IPalette, partSet: IFigurePartSet, clubLevel: 
 
 export function generateRandomFigure(figureData: FigureData, gender: string, clubLevel: number = 0, figureSetIds: number[] = [], ignoredSets: string[] = []): string
 {
-    // 2.1.0's IStructureData is leaner (no getMandatorySetTypeIds/figureData on the
-    // interface); cast so the legacy random-figure helper compiles. The avatar-editor
-    // "randomize" may need a rework against the new structure API.
-    const structure = GetAvatarRenderManager().structureData as any;
+    // 2.1.0: getMandatorySetTypeIds lives on the full `.structure` (not exposed on the
+    // typed IAvatarRenderManager), while set/palette lookups go through structureData
+    // directly (no more `.figureData` indirection). Matches Nitro-V3's randomize.
+    const structure: any = (GetAvatarRenderManager() as any).structure;
+    const structureData = GetAvatarRenderManager().structureData;
     const figureContainer = new AvatarFigureContainer('');
     const requiredSets = getRandomSetTypes(structure.getMandatorySetTypeIds(gender, clubLevel), FigureData.SET_TYPES);
 
@@ -74,7 +75,7 @@ export function generateRandomFigure(figureData: FigureData, gender: string, clu
     {
         if(figureContainer.hasPartType(type)) continue;
         
-        const setType = (structure.figureData.getSetType(type) as SetType);
+        const setType = (structureData.getSetType(type) as SetType);
         const selectedSet = getRandomPartSet(setType, gender, clubLevel, figureSetIds);
 
         if(!selectedSet) continue;
@@ -83,7 +84,7 @@ export function generateRandomFigure(figureData: FigureData, gender: string, clu
 
         if(selectedSet.isColorable)
         {
-            selectedColors = getRandomColors(structure.figureData.getPalette(setType.paletteID), selectedSet, clubLevel).map(color => color.id);
+            selectedColors = getRandomColors(structureData.getPalette(setType.paletteID), selectedSet, clubLevel).map(color => color.id);
         }
 
         figureContainer.updatePart(setType.type, selectedSet.id, selectedColors);
