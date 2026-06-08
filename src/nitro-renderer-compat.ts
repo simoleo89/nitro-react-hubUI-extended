@@ -42,7 +42,20 @@ export class NitroTilemap extends Container
 
 export class PixiApplicationProxy
 {
+    // A real PixiJS 8 Container as the stage so legacy code that does
+    // `this.stage.addChild(...)` (e.g. FloorplanEditor.initialize) runs without
+    // crashing. The proxy isn't wired to a renderer, so nothing actually paints
+    // — the floorplan editor stays dormant until a proper PixiJS 8 rewrite.
+    public stage = new Container();
+    public renderer: any = null;
+    public view: any = null;
+    public screen = { width: 0, height: 0 };
+
     constructor(..._args: any[])
+    {
+    }
+
+    public destroy(..._args: any[]): void
     {
     }
 }

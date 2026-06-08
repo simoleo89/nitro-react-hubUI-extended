@@ -42,7 +42,7 @@ export const MainView: FC<{}> = props =>
     {
         setIsReady(true);
 
-        GetCommunication().connection.onReady();
+        GetCommunication().connection.ready();
     }, []);
 
     useEffect(() =>
