@@ -1,0 +1,285 @@
+/*
+ * hubUI login screen — structure ported from Nitro-V3's LoginView, recoloured
+ * to hubUI's palette:
+ *   primary   #1E7295   secondary #16688A   info #299ccc
+ *   panel/bg  #c1cbd7   borders   #8397af   text #0a3344
+ */
+
+.nitro-login-view {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: radial-gradient(120% 120% at 70% 10%, #2fa6d6 0%, #299ccc 22%, #1E7295 60%, #16688A 100%);
+    z-index: 100;
+}
+
+.nitro-login-view,
+.nitro-login-view * {
+    font-family: Ubuntu, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.nitro-login-view .login-layer {
+    position: absolute;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    transform: translateZ(0);
+}
+
+.nitro-login-view .login-layer-img {
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.nitro-login-view .login-background {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+}
+
+.nitro-login-view .login-sun {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    object-fit: contain;
+    object-position: center top;
+}
+
+.nitro-login-view .login-drape {
+    top: 0;
+    left: 0;
+    width: 190px;
+    height: 220px;
+    z-index: 3;
+    object-fit: contain;
+    object-position: left top;
+}
+
+.nitro-login-view .login-left {
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: none;
+    object-position: left bottom;
+}
+
+.nitro-login-view .login-right {
+    bottom: 0;
+    right: 0;
+    object-fit: initial;
+}
+
+/* ─── Brand wordmark (fills the left side when no reception art is set) ─── */
+
+.nitro-login-view .login-brand {
+    position: absolute;
+    top: 50%;
+    left: 9vw;
+    transform: translateY(-50%);
+    z-index: 40;
+    color: #ffffff;
+    text-shadow: 0 3px 0 rgba(0, 0, 0, 0.25), 0 6px 14px rgba(0, 0, 0, 0.35);
+    user-select: none;
+    pointer-events: none;
+}
+
+.nitro-login-view .login-brand-logo {
+    font-size: 92px;
+    font-weight: 800;
+    line-height: 0.9;
+    letter-spacing: -2px;
+}
+
+.nitro-login-view .login-brand-sub {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: #cdeafb;
+    margin-top: 2px;
+}
+
+/* ─── Foreground card stack ─── */
+
+.nitro-login-view .login-stack {
+    position: absolute;
+    top: 50%;
+    right: 8vw;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 268px;
+    z-index: 50;
+    pointer-events: auto;
+}
+
+.nitro-login-card {
+    background: #c1cbd7;
+    border: 2px solid #16688A;
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: #0a3344;
+    box-shadow: inset 0 2px rgba(255, 255, 255, 0.45), 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.nitro-login-card .card-title {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #ffffff;
+    background: linear-gradient(180deg, #1E7295 0%, #16688A 100%);
+    padding: 5px 26px;
+    margin: -12px -14px 10px -14px;
+    border-radius: 6px 6px 0 0;
+    font-size: 13px;
+    letter-spacing: 0.4px;
+    text-shadow: 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.nitro-login-card .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.nitro-login-card .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nitro-login-card .field label {
+    font-size: 11px;
+    color: #0a3344;
+    font-weight: 600;
+}
+
+.nitro-login-card .field input {
+    width: 100%;
+    padding: 6px 10px;
+    border-radius: 20px;
+    border: 1px solid #8397af;
+    background: #ffffff;
+    color: #0a3344;
+    font-size: 12px;
+    outline: none;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.nitro-login-card .field input:focus {
+    border-color: #1E7295;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 0 0 2px rgba(30, 114, 149, 0.35);
+}
+
+.nitro-login-card .remember-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #0a3344;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+}
+
+.nitro-login-card .remember-row input {
+    width: 13px;
+    height: 13px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: #1E7295;
+}
+
+.nitro-login-card .submit-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 2px;
+}
+
+.nitro-login-card button.ok-button {
+    cursor: pointer;
+    background: linear-gradient(180deg, #ffffff 0%, #e6eef3 100%);
+    border: 1px solid #1E7295;
+    border-radius: 4px;
+    padding: 4px 22px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #16688A;
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.9), 0 1px rgba(0, 0, 0, 0.15);
+}
+
+.nitro-login-card button.ok-button:hover {
+    background: linear-gradient(180deg, #ffffff 0%, #d7e6f0 100%);
+}
+
+.nitro-login-card button.ok-button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.nitro-login-card .forgot {
+    display: block;
+    text-align: center;
+    margin-top: 6px;
+    font-size: 11px;
+    color: #16688A;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.nitro-login-card .register-card-body a {
+    color: #16688A;
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.nitro-login-card .error-line {
+    color: #a81a12;
+    background: #fde6e4;
+    border: 1px solid #e0a7a2;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 11px;
+    text-align: center;
+}
+
+.nitro-login-card .info-line {
+    color: #0a4d2e;
+    background: #e5f5ec;
+    border: 1px solid #a4d4b8;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 11px;
+    text-align: center;
+}
+
+@media (max-width: 720px) {
+    .nitro-login-view .login-brand {
+        left: 50%;
+        top: 16%;
+        transform: translateX(-50%);
+        text-align: center;
+    }
+
+    .nitro-login-view .login-brand-logo {
+        font-size: 64px;
+    }
+
+    .nitro-login-view .login-stack {
+        right: 50%;
+        transform: translate(50%, -50%);
+        width: min(300px, calc(100vw - 32px));
+    }
+}

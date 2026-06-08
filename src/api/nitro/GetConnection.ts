@@ -1,7 +1,6 @@
-import { IConnection } from '@nitrots/nitro-renderer';
 import { GetCommunication } from './GetCommunication';
 
-export function GetConnection(): IConnection
+export function GetConnection(): any
 {
-    return GetCommunication()?.connection;
+    return GetCommunication()?.connection ?? null;
 }

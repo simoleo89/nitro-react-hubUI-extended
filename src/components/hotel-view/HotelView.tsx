@@ -1,6 +1,6 @@
 import
     {
-        NitroConfiguration,
+        GetConfiguration as GetConfigManager,
         RoomSessionEvent
     } from '@nitrots/nitro-renderer';
 import { FC, useEffect, useState } from 'react';
@@ -92,12 +92,12 @@ export const HotelView: FC<{}> = props =>
     if(!isVisible) return null;
 
     const backgroundColor = GetConfiguration('hotelview')['images']['background.colour'];
-    const background = NitroConfiguration.interpolate(GetConfiguration('hotelview')['images']['background']);
-    const sun = NitroConfiguration.interpolate(GetConfiguration('hotelview')['images']['sun']);
-    const drape = NitroConfiguration.interpolate(GetConfiguration('hotelview')['images']['drape']);
-    const left = NitroConfiguration.interpolate(GetConfiguration('hotelview')['images']['left']);
-    const rightRepeat = NitroConfiguration.interpolate(GetConfiguration('hotelview')['images']['right.repeat']);
-    const right = NitroConfiguration.interpolate(GetConfiguration('hotelview')['images']['right']);
+    const background = GetConfigManager().interpolate(GetConfiguration('hotelview')['images']['background']);
+    const sun = GetConfigManager().interpolate(GetConfiguration('hotelview')['images']['sun']);
+    const drape = GetConfigManager().interpolate(GetConfiguration('hotelview')['images']['drape']);
+    const left = GetConfigManager().interpolate(GetConfiguration('hotelview')['images']['left']);
+    const rightRepeat = GetConfigManager().interpolate(GetConfiguration('hotelview')['images']['right.repeat']);
+    const right = GetConfigManager().interpolate(GetConfiguration('hotelview')['images']['right']);
 
     return (
         <div className="w-100 h-100 nitro-hotel-view"

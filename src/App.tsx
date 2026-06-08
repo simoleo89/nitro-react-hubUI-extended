@@ -1,13 +1,26 @@
-import { ConfigurationEvent, GetAssetManager, HabboWebTools, LegacyExternalInterface, Nitro, NitroCommunicationDemoEvent, NitroConfiguration, NitroEvent, NitroLocalizationEvent, NitroVersion, RoomEngineEvent } from '@nitrots/nitro-renderer';
-import { FC, useCallback, useEffect, useState } from 'react';
-import { GetCommunication, GetConfiguration, GetNitroInstance, GetUIVersion } from './api';
+import { GetAssetManager, GetAvatarRenderManager, GetCommunication, GetConfiguration, GetLocalizationManager, GetRoomEngine, GetRoomSessionManager, GetSessionDataManager, GetSoundManager, GetStage, GetTexturePool, GetTicker, NitroLogger, NitroVersion, PrepareRenderer } from '@nitrots/nitro-renderer';
+import { FC, useCallback, useEffect, useRef, useState } from 'react';
+import { GetUIVersion } from './api';
 import { Base, TransitionAnimation, TransitionAnimationTypes } from './common';
 import { LoadingView } from './components/loading/LoadingView';
+import { LoginView } from './components/login/LoginView';
 import { MainView } from './components/main/MainView';
-import { useConfigurationEvent, useLocalizationEvent, useMainEvent, useRoomEngineEvent } from './hooks';
 
 NitroVersion.UI_VERSION = GetUIVersion();
 
+const asStringArray = (value: unknown): string[] =>
+{
+    if(Array.isArray(value)) return value.filter(item => typeof item === 'string');
+    if(typeof value === 'string' && value.length) return [ value ];
+
+    return [];
+};
+
+// Bootstrap rewritten for Nitro_Render_V3 (2.1.0). The old monolithic
+// `Nitro.bootstrap()` + event-chain is gone; managers are initialized
+// imperatively (config -> renderer -> localization -> assets -> managers ->
+// tickers -> communication). A login gate (ported from Nitro-V3) shows the
+// login screen when there is no SSO ticket, then runs the boot flow on auth.
 export const App: FC<{}> = props =>
 {
     const [ isReady, setIsReady ] = useState(false);
@@ -15,127 +28,164 @@ export const App: FC<{}> = props =>
     const [ message, setMessage ] = useState('Getting Ready');
     const [ percent, setPercent ] = useState(0);
     const [ imageRendering, setImageRendering ] = useState<boolean>(true);
+    const [ showLogin, setShowLogin ] = useState(false);
+    const [ isEntering, setIsEntering ] = useState(false);
+    const [ prepareTrigger, setPrepareTrigger ] = useState(0);
+    const bootRef = useRef(false);
+    const lastTriggerRef = useRef(-1);
 
-    if(!GetNitroInstance())
+    // Initial gate: load configuration, then decide between the login screen and
+    // entering the hotel (SSO ticket already present in NitroConfig / URL).
+    useEffect(() =>
     {
-        //@ts-ignore
-        if(!NitroConfig) throw new Error('NitroConfig is not defined!');
+        if(bootRef.current) return;
+        bootRef.current = true;
 
-        Nitro.bootstrap();
-    }
-
-    const handler = useCallback(async (event: NitroEvent) =>
-    {
-        switch(event.type)
+        (async () =>
         {
-            case ConfigurationEvent.LOADED:
-                GetNitroInstance().localization.init();
-                setPercent(prevValue => (prevValue + 20));
-                return;
-            case ConfigurationEvent.FAILED:
-                setIsError(true);
-                setMessage('Configuration Failed');
-                return;
-            case Nitro.WEBGL_UNAVAILABLE:
-                setIsError(true);
-                setMessage('WebGL Required');
-                return;
-            case Nitro.WEBGL_CONTEXT_LOST:
-                setIsError(true);
-                setMessage('WebGL Context Lost - Reloading');
+            try
+            {
+                if(!(window as any).NitroConfig) throw new Error('NitroConfig is not defined!');
 
-                setTimeout(() => window.location.reload(), 1500);
-                return;
-            case NitroCommunicationDemoEvent.CONNECTION_HANDSHAKING:
-                setPercent(prevValue => (prevValue + 20));
-                return;
-            case NitroCommunicationDemoEvent.CONNECTION_HANDSHAKE_FAILED:
-                setIsError(true);
-                setMessage('Handshake Failed');
-                return;
-            case NitroCommunicationDemoEvent.CONNECTION_AUTHENTICATED:
-                setPercent(prevValue => (prevValue + 20));
+                await GetConfiguration().init();
 
-                GetNitroInstance().init();
+                const ssoTicket = (window as any).NitroConfig?.['sso.ticket'];
 
-                if(LegacyExternalInterface.available) LegacyExternalInterface.call('legacyTrack', 'authentication', 'authok', []);
-                return;
-            case NitroCommunicationDemoEvent.CONNECTION_ERROR:
-                setIsError(true);
-                setMessage('Connection Error');
-                return;
-            case NitroCommunicationDemoEvent.CONNECTION_CLOSED:
-                //if(GetNitroInstance().roomEngine) GetNitroInstance().roomEngine.dispose();
-                //setIsError(true);
-                setMessage('Connection Error');
-
-                HabboWebTools.send(-1, 'client.init.handshake.fail');
-                return;
-            case RoomEngineEvent.ENGINE_INITIALIZED:
-                setPercent(prevValue => (prevValue + 20));
-
-                setTimeout(() => setIsReady(true), 300);
-                return;
-            case NitroLocalizationEvent.LOADED: {
-                const assetUrls = GetConfiguration<string[]>('preload.assets.urls');
-                const urls: string[] = [];
-
-                if(assetUrls && assetUrls.length) for(const url of assetUrls) urls.push(NitroConfiguration.interpolate(url));
-
-                const status = await GetAssetManager().downloadAssets(urls);
-                
-                if(status)
+                if(ssoTicket)
                 {
-                    GetCommunication().init();
-
-                    setPercent(prevValue => (prevValue + 20))
+                    setIsEntering(true);
+                    setPrepareTrigger(1);
                 }
                 else
                 {
-                    setIsError(true);
-                    setMessage('Assets Failed');
+                    setShowLogin(true);
                 }
-                return;
             }
-        }
+            catch(err)
+            {
+                NitroLogger.error('[App] Configuration init failed', err);
+                setIsError(true);
+                setMessage(String((err as Error)?.message ?? 'Configuration failed'));
+            }
+        })();
     }, []);
 
-    useMainEvent(Nitro.WEBGL_UNAVAILABLE, handler);
-    useMainEvent(Nitro.WEBGL_CONTEXT_LOST, handler);
-    useMainEvent(NitroCommunicationDemoEvent.CONNECTION_HANDSHAKING, handler);
-    useMainEvent(NitroCommunicationDemoEvent.CONNECTION_HANDSHAKE_FAILED, handler);
-    useMainEvent(NitroCommunicationDemoEvent.CONNECTION_AUTHENTICATED, handler);
-    useMainEvent(NitroCommunicationDemoEvent.CONNECTION_ERROR, handler);
-    useMainEvent(NitroCommunicationDemoEvent.CONNECTION_CLOSED, handler);
-    useRoomEngineEvent(RoomEngineEvent.ENGINE_INITIALIZED, handler);
-    useLocalizationEvent(NitroLocalizationEvent.LOADED, handler);
-    useConfigurationEvent(ConfigurationEvent.LOADED, handler);
-    useConfigurationEvent(ConfigurationEvent.FAILED, handler);
+    const handleAuthenticated = useCallback((ssoTicket: string) =>
+    {
+        if(!ssoTicket) return;
+
+        try
+        {
+            (window as any).NitroConfig['sso.ticket'] = ssoTicket;
+            GetConfiguration().setValue('sso.ticket', ssoTicket);
+        }
+        catch
+        { }
+
+        setShowLogin(false);
+        setIsEntering(true);
+        setPrepareTrigger(prev => prev + 1);
+    }, []);
+
+    // Boot flow — runs once the gate decides to enter (SSO present or post-login).
+    useEffect(() =>
+    {
+        if(prepareTrigger === 0) return;
+        if(lastTriggerRef.current === prepareTrigger) return;
+        lastTriggerRef.current = prepareTrigger;
+
+        const prepare = async () =>
+        {
+            try
+            {
+                setMessage('Getting Ready');
+
+                await GetConfiguration().init();
+                setPercent(15);
+
+                GetTicker().maxFPS = GetConfiguration().getValue<number>('system.fps.max', 24);
+                NitroLogger.LOG_DEBUG = GetConfiguration().getValue<boolean>('system.log.debug', false);
+
+                const width = Math.max(1, Math.floor(window.innerWidth));
+                const height = Math.max(1, Math.floor(window.innerHeight));
+
+                const renderer = await PrepareRenderer({
+                    width,
+                    height,
+                    resolution: window.devicePixelRatio,
+                    autoDensity: true,
+                    backgroundAlpha: 0,
+                    preference: 'webgl',
+                    eventMode: 'none',
+                    failIfMajorPerformanceCaveat: false,
+                    roundPixels: true
+                });
+                setPercent(30);
+
+                const interpolate = (value: string) => GetConfiguration().interpolate(value);
+                const assetUrls = asStringArray(GetConfiguration().getValue<unknown>('preload.assets.urls')).map(interpolate);
+
+                await GetLocalizationManager().init();
+                setPercent(45);
+
+                const status = await GetAssetManager().downloadAssets(assetUrls);
+                if(!status) throw new Error('Assets failed to download');
+                setPercent(55);
+
+                await GetAvatarRenderManager().init();
+                await GetSoundManager().init();
+                setPercent(65);
+
+                await GetSessionDataManager().init();
+                setPercent(75);
+                await GetRoomSessionManager().init();
+                setPercent(82);
+                await GetRoomEngine().init();
+                setPercent(90);
+
+                GetTicker().add(ticker => GetRoomEngine().update(ticker));
+                GetTicker().add(() => renderer.render(GetStage()));
+                GetTicker().add(() => GetTexturePool().run());
+
+                await GetCommunication().init();
+                setPercent(100);
+
+                setTimeout(() => setIsReady(true), 300);
+            }
+            catch(err)
+            {
+                NitroLogger.error('[App] Initialization failed', err);
+                setIsError(true);
+                setIsEntering(false);
+                setShowLogin(false);
+                setMessage(String((err as Error)?.message ?? 'Initialization failed'));
+            }
+        };
+
+        prepare();
+    }, [ prepareTrigger ]);
 
     useEffect(() =>
     {
-        GetNitroInstance().core.configuration.init();
-    
-        const resize = (event: UIEvent) => setImageRendering(!(window.devicePixelRatio % 1));
+        const resize = () => setImageRendering(!(window.devicePixelRatio % 1));
 
         window.addEventListener('resize', resize);
 
-        resize(null);
+        resize();
 
-        return () =>
-        {
-            window.removeEventListener('resize', resize);
-        }
+        return () => window.removeEventListener('resize', resize);
     }, []);
-    
+
     return (
-        <Base fit overflow="hidden" className={ imageRendering && 'image-rendering-pixelated' }>
-            { (!isReady || isError) &&
+        <Base fit overflow="hidden" className={ imageRendering ? 'image-rendering-pixelated' : '' }>
+            { showLogin && !isReady &&
+                <LoginView onAuthenticated={ handleAuthenticated } isEntering={ isEntering } /> }
+            { !showLogin && !isReady &&
                 <LoadingView isError={ isError } message={ message } percent={ percent } /> }
-            <TransitionAnimation type={ TransitionAnimationTypes.FADE_IN } inProp={ (isReady) }>
+            <TransitionAnimation type={ TransitionAnimationTypes.FADE_IN } inProp={ isReady }>
                 <MainView />
             </TransitionAnimation>
             <Base id="draggable-windows-container" />
         </Base>
     );
-}
+};

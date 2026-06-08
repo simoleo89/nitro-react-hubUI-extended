@@ -1,7 +1,8 @@
-import { INitroCore } from '@nitrots/nitro-renderer';
-import { GetNitroInstance } from '..';
+import { GetConfigurationManager } from './GetConfigurationManager';
 
-export function GetNitroCore(): INitroCore
+// The 2.1.0 renderer dropped the INitroCore aggregate; the only member this
+// client used was `core.configuration`, so expose a minimal compatible object.
+export function GetNitroCore(): any
 {
-    return GetNitroInstance().core;
+    return { configuration: GetConfigurationManager() };
 }

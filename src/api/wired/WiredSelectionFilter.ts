@@ -1,30 +1,36 @@
 import { ColorConverter, NitroFilter } from '@nitrots/nitro-renderer';
+import { defaultFilterVert, GlProgram, UniformGroup } from 'pixi.js';
 
-const vertex = `
-attribute vec2 aVertexPosition;
-attribute vec2 aTextureCoord;
-uniform mat3 projectionMatrix;
-varying vec2 vTextureCoord;
-void main(void)
-{
-    gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-    vTextureCoord = aTextureCoord;
-}`;
-
+// Migrated to the PixiJS 8 Filter API (Nitro_Render_V3 2.1.0). PixiJS 8 removed
+// the v7 `new Filter(vert, frag, uniforms)` + `this.uniforms` shape: a filter now
+// takes a GlProgram and exposes uniforms through a UniformGroup resource, read via
+// `this.resources.<group>.uniforms`. The fragment shader is GLSL ES 3.00
+// (in/out/texture/uTexture) and the vertex reuses Pixi's defaultFilterVert.
 const fragment = `
-varying vec2 vTextureCoord;
-uniform sampler2D uSampler;
+in vec2 vTextureCoord;
+out vec4 finalColor;
+
+uniform sampler2D uTexture;
 uniform vec3 lineColor;
 uniform vec3 color;
-void main(void) {
-    vec4 currentColor = texture2D(uSampler, vTextureCoord);
+
+void main(void)
+{
+    vec4 currentColor = texture(uTexture, vTextureCoord);
     vec3 colorLine = lineColor * currentColor.a;
     vec3 colorOverlay = color * currentColor.a;
 
-    if(currentColor.r == 0.0 && currentColor.g == 0.0 && currentColor.b == 0.0 && currentColor.a > 0.0) {
-        gl_FragColor = vec4(colorLine.r, colorLine.g, colorLine.b, currentColor.a);
-    } else if(currentColor.a > 0.0) {
-        gl_FragColor = vec4(colorOverlay.r, colorOverlay.g, colorOverlay.b, currentColor.a);
+    if(currentColor.r == 0.0 && currentColor.g == 0.0 && currentColor.b == 0.0 && currentColor.a > 0.0)
+    {
+        finalColor = vec4(colorLine.r, colorLine.g, colorLine.b, currentColor.a);
+    }
+    else if(currentColor.a > 0.0)
+    {
+        finalColor = vec4(colorOverlay.r, colorOverlay.g, colorOverlay.b, currentColor.a);
+    }
+    else
+    {
+        finalColor = currentColor;
     }
 }`;
 
@@ -35,12 +41,27 @@ export class WiredSelectionFilter extends NitroFilter
 
     constructor(lineColor: number | number[], color: number | number[])
     {
-        super(vertex, fragment);
+        super({
+            glProgram: GlProgram.from({
+                vertex: defaultFilterVert,
+                fragment,
+                name: 'wired-selection-filter'
+            }),
+            resources: {
+                wiredSelectionUniforms: new UniformGroup({
+                    lineColor: { value: new Float32Array(3), type: 'vec3<f32>' },
+                    color: { value: new Float32Array(3), type: 'vec3<f32>' }
+                })
+            }
+        });
 
-        this.uniforms.lineColor = new Float32Array(3);
-        this.uniforms.color = new Float32Array(3);
         this.lineColor = lineColor;
         this.color = color;
+    }
+
+    private get uniformValues(): { lineColor: Float32Array; color: Float32Array }
+    {
+        return (this.resources as any).wiredSelectionUniforms.uniforms;
     }
 
     public get lineColor(): number | number[]
@@ -50,7 +71,7 @@ export class WiredSelectionFilter extends NitroFilter
 
     public set lineColor(value: number | number[])
     {
-        const arr = this.uniforms.lineColor;
+        const arr = this.uniformValues.lineColor;
 
         if(typeof value === 'number')
         {
@@ -75,7 +96,7 @@ export class WiredSelectionFilter extends NitroFilter
 
     public set color(value: number | number[])
     {
-        const arr = this.uniforms.color;
+        const arr = this.uniformValues.color;
 
         if(typeof value === 'number')
         {
