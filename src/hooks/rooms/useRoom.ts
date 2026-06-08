@@ -207,8 +207,8 @@ const useRoomState = () =>
 
         if(renderer)
         {
-            renderer.view.style.width = `${ width }px`;
-            renderer.view.style.height = `${ height }px`;
+            renderer.canvas.style.width = `${ width }px`;
+            renderer.canvas.style.height = `${ height }px`;
             renderer.resolution = window.devicePixelRatio;
             renderer.resize(width, height);
         }
@@ -267,8 +267,8 @@ const useRoomState = () =>
             const width = Math.floor(window.innerWidth);
             const height = Math.floor(window.innerHeight);
 
-            renderer.view.style.width = `${ width }px`;
-            renderer.view.style.height = `${ height }px`;
+            renderer.canvas.style.width = `${ width }px`;
+            renderer.canvas.style.height = `${ height }px`;
             renderer.resolution = window.devicePixelRatio;
             renderer.resize(width, height);
 

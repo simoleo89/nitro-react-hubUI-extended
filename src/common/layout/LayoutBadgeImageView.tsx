@@ -63,17 +63,18 @@ export const LayoutBadgeImageView: FC<LayoutBadgeImageViewProps> = props =>
 
         let didSetBadge = false;
 
-        const onBadgeImageReadyEvent = (event: BadgeImageReadyEvent) =>
+        const onBadgeImageReadyEvent = async (event: BadgeImageReadyEvent) =>
         {
             if(event.badgeId !== badgeCode) return;
-
-            const element = TextureUtils.generateImage(new NitroSprite(event.image));
-
-            element.onload = () => setImageElement(element);
 
             didSetBadge = true;
 
             GetEventDispatcher().removeEventListener(BadgeImageReadyEvent.IMAGE_READY, onBadgeImageReadyEvent);
+
+            // PixiJS 8: TextureUtils.generateImage is async.
+            const element = await TextureUtils.generateImage(new NitroSprite(event.image));
+
+            if(element) setImageElement(element);
         }
 
         GetEventDispatcher().addEventListener(BadgeImageReadyEvent.IMAGE_READY, onBadgeImageReadyEvent);
@@ -82,9 +83,12 @@ export const LayoutBadgeImageView: FC<LayoutBadgeImageViewProps> = props =>
 
         if(texture && !didSetBadge)
         {
-            const element = TextureUtils.generateImage(new NitroSprite(texture));
+            (async () =>
+            {
+                const element = await TextureUtils.generateImage(new NitroSprite(texture));
 
-            element.onload = () => setImageElement(element);
+                if(element) setImageElement(element);
+            })();
         }
 
         return () => GetEventDispatcher().removeEventListener(BadgeImageReadyEvent.IMAGE_READY, onBadgeImageReadyEvent);

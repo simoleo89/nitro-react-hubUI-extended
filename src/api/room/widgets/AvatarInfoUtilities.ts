@@ -1,4 +1,4 @@
-import { GetTickerTime, IFurnitureData, IRoomModerationSettings, IRoomPetData, IRoomUserData, ObjectDataFactory, PetFigureData, PetType, RoomControllerLevel, RoomModerationSettings, RoomObjectCategory, RoomObjectType, RoomObjectVariable, RoomTradingLevelEnum, RoomWidgetEnumItemExtradataParameter, Vector3d } from '@nitrots/nitro-renderer';
+import { GetTickerTime, IFurnitureData, IRoomModerationSettings, IRoomPetData, IRoomUserData, ObjectDataFactory, PetFigureData, PetType, RoomControllerLevel, RoomModerationSettings, RoomObjectCategory, RoomObjectType, RoomObjectVariable, RoomTradingLevelEnum, RoomWidgetEnumItemExtradataParameter, TextureUtils, Vector3d } from '@nitrots/nitro-renderer';
 import { GetRoomEngine, GetRoomSession, GetSessionDataManager, IsOwnerOfFurniture } from '../../nitro';
 import { LocalizeText } from '../../utils';
 import { AvatarInfoFurni } from './AvatarInfoFurni';
@@ -148,7 +148,15 @@ export class AvatarInfoUtilities
             roomObjectImage = GetRoomEngine().getRoomObjectImage(roomSession.roomId, objectId, category, new Vector3d(180), 1, null);
         }
 
-        furniInfo.image = roomObjectImage.getImage();
+        // PixiJS 8: ImageResult.getImage() is async; build a synchronous <img>
+        // (the infostand reads furniInfo.image.src) from the texture via the
+        // sync canvas extractor.
+        if(roomObjectImage && roomObjectImage.data)
+        {
+            const furniImage = new Image();
+            furniImage.src = TextureUtils.generateCanvas(roomObjectImage.data).toDataURL();
+            furniInfo.image = furniImage;
+        }
         furniInfo.isWallItem = (category === RoomObjectCategory.WALL);
         furniInfo.isRoomOwner = roomSession.isRoomOwner;
         furniInfo.roomControllerLevel = roomSession.controllerLevel;

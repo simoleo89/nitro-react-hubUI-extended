@@ -16,6 +16,8 @@ interface LayoutPetImageViewProps extends BaseProps<HTMLDivElement>
     scale?: number;
 }
 
+// PixiJS 8 (2.1.0): imageReady delivers a single result ({ image, data }), the
+// texture extractor is async, and ImageResult.getImage() returns a Promise.
 export const LayoutPetImageView: FC<LayoutPetImageViewProps> = props =>
 {
     const { figure = '', typeId = -1, paletteId = -1, petColor = 0xFFFFFF, customParts = [], posture = 'std', headOnly = false, direction = 0, scale = 1, style = {}, ...rest } = props;
@@ -47,8 +49,6 @@ export const LayoutPetImageView: FC<LayoutPetImageViewProps> = props =>
 
     useEffect(() =>
     {
-        let url = null;
-
         let petTypeId = typeId;
         let petPaletteId = paletteId;
         let petColor1 = petColor;
@@ -68,9 +68,12 @@ export const LayoutPetImageView: FC<LayoutPetImageViewProps> = props =>
         if(petTypeId === 16) petHeadOnly = false;
 
         const imageResult = GetRoomEngine().getRoomObjectPetImage(petTypeId, petPaletteId, petColor1, new Vector3d((direction * 45)), 64, {
-            imageReady: (id, texture, image) =>
+            imageReady: async (result: any) =>
             {
                 if(isDisposed.current) return;
+
+                const image = result?.image;
+                const texture = result?.data;
 
                 if(image)
                 {
@@ -78,30 +81,32 @@ export const LayoutPetImageView: FC<LayoutPetImageViewProps> = props =>
                     setWidth(image.width);
                     setHeight(image.height);
                 }
-
                 else if(texture)
                 {
-                    setPetUrl(TextureUtils.generateImageUrl(texture));
+                    setPetUrl(await TextureUtils.generateImageUrl(texture));
                     setWidth(texture.width);
                     setHeight(texture.height);
                 }
             },
-            imageFailed: (id) =>
+            imageFailed: () =>
             {
-
+                // no-op
             }
         }, petHeadOnly, 0, petCustomParts, posture);
 
         if(imageResult)
         {
-            const image = imageResult.getImage();
-
-            if(image)
+            (async () =>
             {
-                setPetUrl(image.src);
-                setWidth(image.width);
-                setHeight(image.height);
-            }
+                const image = await imageResult.getImage();
+
+                if(image && !isDisposed.current)
+                {
+                    setPetUrl(image.src);
+                    setWidth(image.width);
+                    setHeight(image.height);
+                }
+            })();
         }
     }, [ figure, typeId, paletteId, petColor, customParts, posture, headOnly, direction ]);
 
@@ -112,10 +117,8 @@ export const LayoutPetImageView: FC<LayoutPetImageViewProps> = props =>
         return () =>
         {
             isDisposed.current = true;
-        }
+        };
     }, []);
 
-    const url = `url('${ petUrl }')`;
-
     return <Base classNames={ [ 'pet-image' ] } style={ getStyle } { ...rest } />;
-}
+};

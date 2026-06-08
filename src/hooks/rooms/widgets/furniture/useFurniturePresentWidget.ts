@@ -52,14 +52,11 @@ const useFurniturePresentWidgetState = () =>
     const imageListener: IGetImageListener = useMemo(() =>
     {
         return {
-            imageReady: (id, texture, image) =>
+            imageReady: async (result: any) =>
             {
-                if(!image && texture)
-                {
-                    image = TextureUtils.generateImage(texture);
-                }
+                const image = result?.image ?? (result?.data ? await TextureUtils.generateImage(result.data) : null);
 
-                setImageUrl(image.src);
+                if(image) setImageUrl(image.src);
             },
             imageFailed: null
         }
@@ -167,14 +164,14 @@ const useFurniturePresentWidgetState = () =>
 
                         const petImage = GetRoomEngine().getRoomObjectPetImage(petFigureData.typeId, petFigureData.paletteId, petFigureData.color, new Vector3d(90), 64, imageListener, true, 0, petFigureData.customParts);
 
-                        if(petImage) setImageUrl(petImage.getImage().src);
+                        // image delivered asynchronously via imageListener.imageReady (PixiJS 8)
                     }
                 }
                 else
                 {
                     const furniImage = GetRoomEngine().getFurnitureFloorImage(event.classId, new Vector3d(90), 64, imageListener);
 
-                    if(furniImage) setImageUrl(furniImage.getImage().src);
+                    // image delivered asynchronously via imageListener.imageReady (PixiJS 8)
                 }
 
                 const productData = GetSessionDataManager().getProductData(event.productCode);

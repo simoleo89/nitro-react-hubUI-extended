@@ -54,16 +54,16 @@ const useChatWidgetState = () =>
 
         if(!avatarImage) return;
 
-        const image = avatarImage.getCroppedImage(AvatarSetType.HEAD);
+        const imageUrl = avatarImage.processAsImageUrl(AvatarSetType.HEAD);
         const color = avatarImage.getPartColor(AvatarFigurePartType.CHEST);
 
         avatarColorCache.set(figure, ((color && color.rgb) || 16777215));
 
         avatarImage.dispose();
 
-        avatarImageCache.set(figure, image.src);
+        avatarImageCache.set(figure, imageUrl);
 
-        return image.src;
+        return imageUrl;
     }
 
     const getUserImage = (figure: string) =>
@@ -85,9 +85,11 @@ const useChatWidgetState = () =>
         const typeId = figureData.typeId;
         const image = GetRoomEngine().getRoomObjectPetImage(typeId, figureData.paletteId, figureData.color, new Vector3d((direction * 45)), scale, null, false, 0, figureData.customParts, posture);
 
-        if(image)
+        if(image && image.data)
         {
-            existing = TextureUtils.generateImageUrl(image.data);
+            // PixiJS 8: generateImageUrl is async; use the sync canvas extractor here
+            // since this cache helper must return the URL synchronously.
+            existing = TextureUtils.generateCanvas(image.data).toDataURL();
 
             petImageCache.set((figure + posture), existing);
         }

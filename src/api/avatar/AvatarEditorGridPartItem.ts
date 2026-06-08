@@ -212,9 +212,13 @@ export class AvatarEditorGridPartItem implements IAvatarImageListener
 
         if(this._isDisabled) this.setAlpha(container, 0.2);
 
-        this._imageUrl = TextureUtils.generateImageUrl(container);
-        
-        if(this.notify) this.notify();
+        // PixiJS 8: generateImageUrl is async; set the url + notify when it resolves.
+        TextureUtils.generateImageUrl(container).then(url =>
+        {
+            this._imageUrl = url;
+
+            if(this.notify) this.notify();
+        });
     }
 
     private setAlpha(container: NitroContainer, alpha: number): NitroContainer

@@ -1,4 +1,4 @@
-import { AddLinkEventTracker, CreateLinkEvent, GetAvatarRenderManager, GetConfiguration, GetEventDispatcher, GetLocalizationManager, GetRenderer, GetRoomCameraWidgetManager, GetRoomEngine, GetRoomSessionManager, GetSessionDataManager, GetSoundManager, RemoveLinkEventTracker } from '@nitrots/nitro-renderer';
+import { AddLinkEventTracker, CreateLinkEvent, GetAvatarRenderManager, GetConfiguration, GetEventDispatcher, GetLocalizationManager, GetRenderer, GetRoomCameraWidgetManager, GetRoomEngine, GetRoomSessionManager, GetSessionDataManager, GetSoundManager, GetStage, RemoveLinkEventTracker } from '@nitrots/nitro-renderer';
 
 // Compatibility shim. Nitro_Render_V3 (2.1.0) removed the monolithic `Nitro`
 // singleton in favour of standalone Get*() accessors. This client still calls
@@ -15,7 +15,7 @@ const instance: any = {
     get localization() { return GetLocalizationManager(); },
     get events() { return GetEventDispatcher(); },
     get core() { return { configuration: GetConfiguration() }; },
-    get application() { return { renderer: GetRenderer() }; },
+    get application() { return { renderer: GetRenderer(), stage: GetStage() }; },
     get width() { return GetRenderer()?.width ?? 0; },
     get height() { return GetRenderer()?.height ?? 0; },
     getConfiguration<T>(key: string, value: T = null): T { return GetConfiguration().getValue<T>(key, value); },

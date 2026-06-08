@@ -10,15 +10,15 @@ export const CatalogRoomPreviewerView: FC<LayoutRoomPreviewerViewProps> = props 
     const { roomPreviewer = null } = props;
     const elementRef = useRef<HTMLDivElement>(null);
 
-    useUiEvent(CatalogPurchasedEvent.PURCHASE_SUCCESS, event =>
+    useUiEvent(CatalogPurchasedEvent.PURCHASE_SUCCESS, async event =>
     {
         if(!elementRef) return;
-        
+
         const renderTexture = roomPreviewer.getRoomObjectCurrentImage();
 
         if(!renderTexture) return;
 
-        const image = TextureUtils.generateImage(renderTexture);
+        const image = await TextureUtils.generateImage(renderTexture);
 
         if(!image) return;
 

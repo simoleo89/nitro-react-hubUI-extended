@@ -32,7 +32,7 @@ export const FloorplanCanvasView: FC<ColumnProps> = props =>
 
         setOccupiedTilesReceived(true);
         
-        elementRef.current.scrollTo((FloorplanEditor.instance.view.width / 3), 0);
+        elementRef.current.scrollTo(((((FloorplanEditor.instance as any).view?.width) ?? 0) / 3), 0);
     });
 
     useMessageEvent<RoomEntryTileMessageEvent>(RoomEntryTileMessageEvent, event =>
@@ -120,7 +120,9 @@ export const FloorplanCanvasView: FC<ColumnProps> = props =>
 
         if(!elementRef.current) return;
 
-        elementRef.current.appendChild(FloorplanEditor.instance.renderer.view);
+        const floorplanCanvas = (FloorplanEditor.instance as any).renderer?.canvas ?? (FloorplanEditor.instance as any).renderer?.view;
+
+        if(floorplanCanvas) elementRef.current.appendChild(floorplanCanvas);
     }, []);
 
     return (
