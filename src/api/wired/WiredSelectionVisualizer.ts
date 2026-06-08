@@ -49,7 +49,7 @@ export class WiredSelectionVisualizer
 
         for(const sprite of visualization.sprites)
         {
-            if(sprite.blendMode === 1) continue; // BLEND_MODE: ADD
+            if((sprite.blendMode as any) === 'add') continue; // BLEND_MODE: ADD (PixiJS 8 uses string blend modes)
 
             sprite.filters = [ WiredSelectionVisualizer._selectionShader ];
         }

@@ -24,7 +24,10 @@ export const POINT_STRUCT_SIZE = 8;
 
 // Interaction event payload type (old PixiInteractionEventProxy). Kept as a
 // runtime-present class so value-position imports resolve under isolatedModules.
-export class PixiInteractionEventProxy {}
+export class PixiInteractionEventProxy
+{
+    public data: any;
+}
 
 // --- Floorplan editor compatibility stubs --------------------------------
 // 1.6.6's floorplan editor extended PixiApplicationProxy and rendered tiles via
@@ -38,6 +41,10 @@ export class NitroTilemap extends Container
     {
         super();
     }
+
+    public clear(): void {}
+
+    public tile(..._args: any[]): void {}
 }
 
 export class PixiApplicationProxy

@@ -116,7 +116,7 @@ const useChatInputWidgetState = () =>
 
                     const image = new Image();
                     
-                    image.src = TextureUtils.generateImageUrl(texture);
+                    image.src = TextureUtils.generateCanvas(texture).toDataURL();
                     
                     const newWindow = window.open('');
                     newWindow.document.write(image.outerHTML);

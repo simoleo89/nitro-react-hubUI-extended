@@ -83,9 +83,21 @@ export const CameraWidgetEditorView: FC<CameraWidgetEditorViewProps> = props =>
         });
     }, [ getCurrentEffectIndex, setSelectedEffects ]);
 
-    const getCurrentPictureUrl = useMemo(() =>
+    // PixiJS 8: applyEffects is async, so resolve the preview URL into state.
+    const [ getCurrentPictureUrl, setCurrentPictureUrl ] = useState<string>('');
+
+    useEffect(() =>
     {
-        return GetRoomCameraWidgetManager().applyEffects(picture.texture, selectedEffects, isZoomed).src;
+        let cancelled = false;
+
+        (async () =>
+        {
+            const image = await GetRoomCameraWidgetManager().applyEffects(picture.texture, selectedEffects, isZoomed);
+
+            if(!cancelled && image) setCurrentPictureUrl(image.src);
+        })();
+
+        return () => { cancelled = true; };
     }, [ picture, selectedEffects, isZoomed ]);
 
     const processAction = useCallback((type: string, effectName: string = null) =>
@@ -159,14 +171,23 @@ export const CameraWidgetEditorView: FC<CameraWidgetEditorViewProps> = props =>
 
     useEffect(() =>
     {
-        const thumbnails: CameraPictureThumbnail[] = [];
+        let cancelled = false;
 
-        for(const effect of availableEffects)
+        (async () =>
         {
-            thumbnails.push(new CameraPictureThumbnail(effect.name, GetRoomCameraWidgetManager().applyEffects(picture.texture, [ new RoomCameraWidgetSelectedEffect(effect, 1) ], false).src));
-        }
+            const thumbnails: CameraPictureThumbnail[] = [];
 
-        setEffectsThumbnails(thumbnails);
+            for(const effect of availableEffects)
+            {
+                const image = await GetRoomCameraWidgetManager().applyEffects(picture.texture, [ new RoomCameraWidgetSelectedEffect(effect, 1) ], false);
+
+                thumbnails.push(new CameraPictureThumbnail(effect.name, image?.src ?? ''));
+            }
+
+            if(!cancelled) setEffectsThumbnails(thumbnails);
+        })();
+
+        return () => { cancelled = true; };
     }, [ picture, availableEffects ]);
 
     return (
@@ -194,7 +215,7 @@ export const CameraWidgetEditorView: FC<CameraWidgetEditorViewProps> = props =>
                                         min={ 0 }
                                         max={ 1 }
                                         step={ 0.01 }
-                                        value={ getCurrentEffect.alpha }
+                                        value={ getCurrentEffect.strength }
                                         onChange={ event => setSelectedEffectAlpha(event) }
                                         renderThumb={ (props, state) => <div { ...props }>{ state.valueNow }</div> } />
                                 </Column> }

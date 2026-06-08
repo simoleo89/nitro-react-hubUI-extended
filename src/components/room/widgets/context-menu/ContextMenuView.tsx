@@ -1,4 +1,4 @@
-import { FixedSizeStack, GetTicker, NitroPoint, NitroRectangle, RoomObjectType } from '@nitrots/nitro-renderer';
+import { FixedSizeStack, GetTicker, NitroPoint, NitroRectangle, NitroTicker, RoomObjectType } from '@nitrots/nitro-renderer';
 import { CSSProperties, FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GetNitroInstance, GetRoomObjectBounds, GetRoomObjectScreenLocation, GetRoomSession } from '../../../../api';
 import { Base, BaseProps } from '../../../../common';
@@ -122,11 +122,11 @@ export const ContextMenuView: FC<ContextMenuViewProps> = props =>
     {
         if(!elementRef.current) return;
         
-        const update = (time: number) =>
+        const update = (ticker: NitroTicker) =>
         {
             if(!elementRef.current) return;
 
-            updateFade(time);
+            updateFade(ticker.deltaTime);
 
             const bounds = GetRoomObjectBounds(GetRoomSession().roomId, objectId, category);
             const location = GetRoomObjectScreenLocation(GetRoomSession().roomId, objectId, category);

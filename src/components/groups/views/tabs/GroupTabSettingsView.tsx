@@ -39,7 +39,9 @@ export const GroupTabSettingsView: FC<GroupTabSettingsViewProps> = props =>
             return true;
         }
 
-        SendMessageComposer(new GroupSavePreferencesComposer(groupData.groupId, groupState, groupDecorate ? 0 : 1));
+        // 2.1.0 added a 4th `forumEnabled` arg; IGroupData has no forum flag here,
+        // so default to enabled (this settings tab doesn't toggle the forum).
+        SendMessageComposer(new GroupSavePreferencesComposer(groupData.groupId, groupState, groupDecorate ? 0 : 1, true));
 
         return true;
     }, [ groupData, groupState, groupDecorate, setGroupData ]);

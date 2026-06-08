@@ -1,20 +1,22 @@
-import { CatalogPageMessageProductData } from '@nitrots/nitro-renderer';
+import { FurnitureType } from '@nitrots/nitro-renderer';
 import { FurniCategory } from '../inventory';
 import { GetRoomEngine } from '../nitro';
 
+// Updated for Nitro_Render_V3 2.1.0: product type is the FurnitureType enum
+// (the old CatalogPageMessageProductData.S/I/E letters are gone).
 export class ProductImageUtility
 {
-    public static getProductImageUrl(productType: string, furniClassId: number, extraParam: string): string
+    public static getProductImageUrl(productType: FurnitureType, furniClassId: number, extraParam: string): string
     {
         let imageUrl: string = null;
 
         switch(productType)
         {
-            case CatalogPageMessageProductData.S:
+            case FurnitureType.FLOOR:
                 imageUrl = GetRoomEngine().getFurnitureFloorIconUrl(furniClassId);
                 break;
-            case CatalogPageMessageProductData.I:
-                const productCategory = this.getProductCategory(CatalogPageMessageProductData.I, furniClassId);
+            case FurnitureType.WALL:
+                const productCategory = this.getProductCategory(FurnitureType.WALL, furniClassId);
 
                 if(productCategory === 1)
                 {
@@ -33,19 +35,18 @@ export class ProductImageUtility
                     }
                 }
                 break;
-            case CatalogPageMessageProductData.E:
-            // fx_icon_furniClassId_png
+            case FurnitureType.EFFECT:
                 break;
         }
 
         return imageUrl;
     }
 
-    public static getProductCategory(productType: string, furniClassId: number): number
+    public static getProductCategory(productType: FurnitureType, furniClassId: number): number
     {
-        if(productType === CatalogPageMessageProductData.S) return 1;
+        if(productType === FurnitureType.FLOOR) return 1;
 
-        if(productType === CatalogPageMessageProductData.I)
+        if(productType === FurnitureType.WALL)
         {
             if(furniClassId === 3001) return FurniCategory.WALL_PAPER;
 

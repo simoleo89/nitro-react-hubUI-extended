@@ -57,7 +57,7 @@ export class FloorplanEditor extends PixiApplicationProxy
         if(!collection) return;
 
         this._assetCollection = collection;
-        this._tilemapRenderer = new NitroTilemap(collection.baseTexture);
+        this._tilemapRenderer = new NitroTilemap((collection as any).baseTexture);
 
         this.registerEventListeners();
 

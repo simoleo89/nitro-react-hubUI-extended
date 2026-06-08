@@ -55,7 +55,10 @@ function getRandomColors(palette: IPalette, partSet: IFigurePartSet, clubLevel: 
 
 export function generateRandomFigure(figureData: FigureData, gender: string, clubLevel: number = 0, figureSetIds: number[] = [], ignoredSets: string[] = []): string
 {
-    const structure = GetAvatarRenderManager().structure;
+    // 2.1.0's IStructureData is leaner (no getMandatorySetTypeIds/figureData on the
+    // interface); cast so the legacy random-figure helper compiles. The avatar-editor
+    // "randomize" may need a rework against the new structure API.
+    const structure = GetAvatarRenderManager().structureData as any;
     const figureContainer = new AvatarFigureContainer('');
     const requiredSets = getRandomSetTypes(structure.getMandatorySetTypeIds(gender, clubLevel), FigureData.SET_TYPES);
 
